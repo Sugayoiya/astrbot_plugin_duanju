@@ -39,8 +39,8 @@ class DuanjuSearchPlugin(Star):
             return {"error": f"请求异常: {str(e)}"}
 
     # LLM 函数工具定义
-    @llm_tool(name="get_categories")
-    async def get_categories(self, event: AstrMessageEvent) -> str:
+    @llm_tool(name="get_drama_categories")
+    async def get_drama_categories(self, event: AstrMessageEvent) -> str:
         """获取短剧分类列表。
         
         Returns:
@@ -91,8 +91,8 @@ class DuanjuSearchPlugin(Star):
             "dramas": dramas
         }, ensure_ascii=False)
 
-    @llm_tool(name="get_category_dramas")
-    async def get_category_dramas(self, event: AstrMessageEvent, category_id: int, page: int = 1) -> str:
+    @llm_tool(name="get_category_hot_dramas")
+    async def get_category_hot_dramas(self, event: AstrMessageEvent, category_id: int, page: int = 1) -> str:
         """获取指定分类的热门短剧列表。
         
         Args:
@@ -126,8 +126,8 @@ class DuanjuSearchPlugin(Star):
             "dramas": dramas
         }, ensure_ascii=False)
 
-    @llm_tool(name="get_recommendations")
-    async def get_recommendations(self, event: AstrMessageEvent, category_id: Optional[int] = None, size: int = 10) -> str:
+    @llm_tool(name="get_drama_recommendations")
+    async def get_drama_recommendations(self, event: AstrMessageEvent, category_id: Optional[int] = None, size: int = 10) -> str:
         """获取推荐短剧。
         
         Args:
@@ -195,7 +195,7 @@ class DuanjuSearchPlugin(Star):
     @filter.command("短剧分类", "duanju_categories")
     async def cmd_categories(self, event: AstrMessageEvent):
         """获取短剧分类列表"""
-        result = await self.get_categories(event)
+        result = await self.get_drama_categories(event)
         try:
             data = json.loads(result)
             if "categories" in data:
@@ -210,43 +210,6 @@ class DuanjuSearchPlugin(Star):
         
         yield event.plain_result(text)
 
-    @filter.command("短剧帮助", "duanju_help")
-    async def cmd_help(self, event: AstrMessageEvent):
-        """显示短剧插件帮助信息"""
-        help_text = """📖 短剧搜索插件使用帮助
-
-🎬 **可用命令：**
-
-1️⃣ `/短剧分类` 或 `/duanju_categories`
-   - 获取所有短剧分类列表
-
-2️⃣ `/搜索短剧 剧名`
-   - 根据名称搜索短剧
-   - 示例：/搜索短剧 霸道总裁
-
-3️⃣ `/短剧推荐` 或 `/duanju_recommend`
-   - 获取随机推荐的短剧
-
-4️⃣ `/最新短剧` 或 `/duanju_latest`
-   - 获取最新上线的短剧
-
-5️⃣ `/分类短剧 分类ID [页码]`
-   - 获取指定分类的热门短剧
-   - 示例：/分类短剧 1 2
-
-6️⃣ `/获取剧集 短剧ID [集数]`
-   - 获取短剧播放地址
-   - 示例：/获取剧集 123 5 (获取第5集)
-   - 示例：/获取剧集 123 (获取全集)
-
-💡 **小贴士：**
-- 短剧ID可从搜索结果中获取
-- 分类ID可从分类列表中获取
-- 支持LLM智能对话调用这些功能
-
-❓ 如有问题，请联系插件作者 Sugayoiya"""
-        
-        yield event.plain_result(help_text)
 
     @filter.command("搜索短剧")
     async def cmd_search(self, event: AstrMessageEvent):
@@ -278,48 +241,11 @@ class DuanjuSearchPlugin(Star):
         
         yield event.plain_result(text)
 
-    @filter.command("短剧帮助", "duanju_help")
-    async def cmd_help(self, event: AstrMessageEvent):
-        """显示短剧插件帮助信息"""
-        help_text = """📖 短剧搜索插件使用帮助
-
-🎬 **可用命令：**
-
-1️⃣ `/短剧分类` 或 `/duanju_categories`
-   - 获取所有短剧分类列表
-
-2️⃣ `/搜索短剧 剧名`
-   - 根据名称搜索短剧
-   - 示例：/搜索短剧 霸道总裁
-
-3️⃣ `/短剧推荐` 或 `/duanju_recommend`
-   - 获取随机推荐的短剧
-
-4️⃣ `/最新短剧` 或 `/duanju_latest`
-   - 获取最新上线的短剧
-
-5️⃣ `/分类短剧 分类ID [页码]`
-   - 获取指定分类的热门短剧
-   - 示例：/分类短剧 1 2
-
-6️⃣ `/获取剧集 短剧ID [集数]`
-   - 获取短剧播放地址
-   - 示例：/获取剧集 123 5 (获取第5集)
-   - 示例：/获取剧集 123 (获取全集)
-
-💡 **小贴士：**
-- 短剧ID可从搜索结果中获取
-- 分类ID可从分类列表中获取
-- 支持LLM智能对话调用这些功能
-
-❓ 如有问题，请联系插件作者 Sugayoiya"""
-        
-        yield event.plain_result(help_text)
 
     @filter.command("短剧推荐", "duanju_recommend")
     async def cmd_recommend(self, event: AstrMessageEvent):
         """获取推荐短剧"""
-        result = await self.get_recommendations(event, size=5)
+        result = await self.get_drama_recommendations(event, size=5)
         
         try:
             data = json.loads(result)
@@ -339,43 +265,6 @@ class DuanjuSearchPlugin(Star):
         
         yield event.plain_result(text)
 
-    @filter.command("短剧帮助", "duanju_help")
-    async def cmd_help(self, event: AstrMessageEvent):
-        """显示短剧插件帮助信息"""
-        help_text = """📖 短剧搜索插件使用帮助
-
-🎬 **可用命令：**
-
-1️⃣ `/短剧分类` 或 `/duanju_categories`
-   - 获取所有短剧分类列表
-
-2️⃣ `/搜索短剧 剧名`
-   - 根据名称搜索短剧
-   - 示例：/搜索短剧 霸道总裁
-
-3️⃣ `/短剧推荐` 或 `/duanju_recommend`
-   - 获取随机推荐的短剧
-
-4️⃣ `/最新短剧` 或 `/duanju_latest`
-   - 获取最新上线的短剧
-
-5️⃣ `/分类短剧 分类ID [页码]`
-   - 获取指定分类的热门短剧
-   - 示例：/分类短剧 1 2
-
-6️⃣ `/获取剧集 短剧ID [集数]`
-   - 获取短剧播放地址
-   - 示例：/获取剧集 123 5 (获取第5集)
-   - 示例：/获取剧集 123 (获取全集)
-
-💡 **小贴士：**
-- 短剧ID可从搜索结果中获取
-- 分类ID可从分类列表中获取
-- 支持LLM智能对话调用这些功能
-
-❓ 如有问题，请联系插件作者 Sugayoiya"""
-        
-        yield event.plain_result(help_text)
 
     @filter.command("最新短剧", "duanju_latest")
     async def cmd_latest(self, event: AstrMessageEvent):
@@ -404,43 +293,6 @@ class DuanjuSearchPlugin(Star):
         
         yield event.plain_result(text)
 
-    @filter.command("短剧帮助", "duanju_help")
-    async def cmd_help(self, event: AstrMessageEvent):
-        """显示短剧插件帮助信息"""
-        help_text = """📖 短剧搜索插件使用帮助
-
-🎬 **可用命令：**
-
-1️⃣ `/短剧分类` 或 `/duanju_categories`
-   - 获取所有短剧分类列表
-
-2️⃣ `/搜索短剧 剧名`
-   - 根据名称搜索短剧
-   - 示例：/搜索短剧 霸道总裁
-
-3️⃣ `/短剧推荐` 或 `/duanju_recommend`
-   - 获取随机推荐的短剧
-
-4️⃣ `/最新短剧` 或 `/duanju_latest`
-   - 获取最新上线的短剧
-
-5️⃣ `/分类短剧 分类ID [页码]`
-   - 获取指定分类的热门短剧
-   - 示例：/分类短剧 1 2
-
-6️⃣ `/获取剧集 短剧ID [集数]`
-   - 获取短剧播放地址
-   - 示例：/获取剧集 123 5 (获取第5集)
-   - 示例：/获取剧集 123 (获取全集)
-
-💡 **小贴士：**
-- 短剧ID可从搜索结果中获取
-- 分类ID可从分类列表中获取
-- 支持LLM智能对话调用这些功能
-
-❓ 如有问题，请联系插件作者 Sugayoiya"""
-        
-        yield event.plain_result(help_text)
 
     @filter.command("分类短剧")
     async def cmd_category_dramas(self, event: AstrMessageEvent):
@@ -457,7 +309,7 @@ class DuanjuSearchPlugin(Star):
             yield event.plain_result("❌ 参数格式错误，分类ID和页码必须是数字")
             return
         
-        result = await self.get_category_dramas(event, category_id, page)
+        result = await self.get_category_hot_dramas(event, category_id, page)
         
         try:
             data = json.loads(result)
@@ -477,43 +329,6 @@ class DuanjuSearchPlugin(Star):
         
         yield event.plain_result(text)
 
-    @filter.command("短剧帮助", "duanju_help")
-    async def cmd_help(self, event: AstrMessageEvent):
-        """显示短剧插件帮助信息"""
-        help_text = """📖 短剧搜索插件使用帮助
-
-🎬 **可用命令：**
-
-1️⃣ `/短剧分类` 或 `/duanju_categories`
-   - 获取所有短剧分类列表
-
-2️⃣ `/搜索短剧 剧名`
-   - 根据名称搜索短剧
-   - 示例：/搜索短剧 霸道总裁
-
-3️⃣ `/短剧推荐` 或 `/duanju_recommend`
-   - 获取随机推荐的短剧
-
-4️⃣ `/最新短剧` 或 `/duanju_latest`
-   - 获取最新上线的短剧
-
-5️⃣ `/分类短剧 分类ID [页码]`
-   - 获取指定分类的热门短剧
-   - 示例：/分类短剧 1 2
-
-6️⃣ `/获取剧集 短剧ID [集数]`
-   - 获取短剧播放地址
-   - 示例：/获取剧集 123 5 (获取第5集)
-   - 示例：/获取剧集 123 (获取全集)
-
-💡 **小贴士：**
-- 短剧ID可从搜索结果中获取
-- 分类ID可从分类列表中获取
-- 支持LLM智能对话调用这些功能
-
-❓ 如有问题，请联系插件作者 Sugayoiya"""
-        
-        yield event.plain_result(help_text)
 
     @filter.command("获取剧集")
     async def cmd_get_episodes(self, event: AstrMessageEvent):
@@ -563,41 +378,4 @@ class DuanjuSearchPlugin(Star):
             text = result
         
         yield event.plain_result(text)
-
-    @filter.command("短剧帮助", "duanju_help")
-    async def cmd_help(self, event: AstrMessageEvent):
-        """显示短剧插件帮助信息"""
-        help_text = """📖 短剧搜索插件使用帮助
-
-🎬 **可用命令：**
-
-1️⃣ `/短剧分类` 或 `/duanju_categories`
-   - 获取所有短剧分类列表
-
-2️⃣ `/搜索短剧 剧名`
-   - 根据名称搜索短剧
-   - 示例：/搜索短剧 霸道总裁
-
-3️⃣ `/短剧推荐` 或 `/duanju_recommend`
-   - 获取随机推荐的短剧
-
-4️⃣ `/最新短剧` 或 `/duanju_latest`
-   - 获取最新上线的短剧
-
-5️⃣ `/分类短剧 分类ID [页码]`
-   - 获取指定分类的热门短剧
-   - 示例：/分类短剧 1 2
-
-6️⃣ `/获取剧集 短剧ID [集数]`
-   - 获取短剧播放地址
-   - 示例：/获取剧集 123 5 (获取第5集)
-   - 示例：/获取剧集 123 (获取全集)
-
-💡 **小贴士：**
-- 短剧ID可从搜索结果中获取
-- 分类ID可从分类列表中获取
-- 支持LLM智能对话调用这些功能
-
-❓ 如有问题，请联系插件作者 Sugayoiya"""
         
-        yield event.plain_result(help_text)
