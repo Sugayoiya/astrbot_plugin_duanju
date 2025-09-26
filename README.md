@@ -181,7 +181,9 @@ AI: 好的，我来为您获取播放地址。
 
 ## 作者
 
-**Sugayoiya** - 插件开发者
+**Sugayoiya** - 预制码大厨
+
+**Claude-4-sonnet** - TRUE DEV
 
 ## 许可证
 
