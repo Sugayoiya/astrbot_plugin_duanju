@@ -164,27 +164,21 @@ class DuanjuSearchPlugin(Star):
         return json.dumps(result, ensure_ascii=False)
 
     @llm_tool(name="get_drama_episodes")
-    async def get_drama_episodes(self, event: AstrMessageEvent, drama_id: int, episode: Optional[int] = None) -> str:
-        """获取短剧的剧集播放地址。
+    async def get_drama_episodes(self, event: AstrMessageEvent, drama_id: int, episode: int) -> str:
+        """获取短剧指定集数的播放地址。注意：此函数只支持获取单集地址，如需获取全集地址请提示用户使用命令 /获取剧集 短剧ID。
         
         Args:
             drama_id(number): 短剧ID
-            episode(number): 可选的指定集数，不指定则获取全部集数
+            episode(number): 指定集数（从1开始）
             
         Returns:
-            包含剧集播放信息的JSON字符串
+            包含单集播放信息的JSON字符串，如果用户想要全集地址则提示使用命令
         """
-        if episode is not None:
-            # 获取单集地址
-            result = await self._make_request("/vod/parse/single", {
-                "id": str(drama_id),
-                "episode": episode
-            })
-        else:
-            # 获取全集地址
-            result = await self._make_request("/vod/parse/all", {
-                "id": drama_id
-            })
+        # 只支持单集获取
+        result = await self._make_request("/vod/parse/single", {
+            "id": str(drama_id),
+            "episode": episode - 1  # API使用0基索引
+        })
         
         if "error" in result:
             return f"获取剧集信息失败: {result['error']}"
@@ -345,37 +339,89 @@ class DuanjuSearchPlugin(Star):
             yield event.plain_result("❌ 参数格式错误，短剧ID和集数必须是数字")
             return
         
-        result = await self.get_drama_episodes(event, drama_id, episode)
+        # 直接调用API而不是通过LLM工具函数
+        try:
+            if episode is not None:
+                # 获取单集地址
+                result = await self._make_request("/vod/parse/single", {
+                    "id": str(drama_id),
+                    "episode": episode - 1  # API使用0基索引
+                })
+            else:
+                # 获取全集地址
+                result = await self._make_request("/vod/parse/all", {
+                    "id": str(drama_id)
+                })
+        except Exception as e:
+            yield event.plain_result(f"❌ 请求失败: {str(e)}")
+            return
+        
+        if "error" in result:
+            yield event.plain_result(f"❌ {result['error']}")
+            return
         
         try:
-            data = json.loads(result)
-            if "error" in data:
-                text = f"❌ {data['error']}"
-            elif episode is not None:
-                # 单集结果
-                if "url" in data:
-                    text = f"🎬 短剧ID {drama_id} 第 {episode} 集播放地址：\n\n"
-                    text += f"📺 播放链接: {data['url']}\n"
-                    if "title" in data:
-                        text += f"📝 标题: {data['title']}\n"
-                else:
-                    text = f"😔 未找到短剧ID {drama_id} 第 {episode} 集的播放地址"
-            else:
-                # 全集结果
-                if "episodes" in data and data["episodes"]:
-                    text = f"🎬 短剧ID {drama_id} 全集播放地址：\n\n"
-                    for ep_info in data["episodes"][:10]:  # 只显示前10集
-                        text += f"第 {ep_info.get('episode', 'N/A')} 集: {ep_info.get('url', 'N/A')}\n"
+            if episode is not None:
+                # 单集结果解析
+                video_name = result.get("videoName", "未知短剧")
+                episode_info = result.get("episode", {})
+                
+                text = f"🎬 {video_name} - 第 {episode} 集\n\n"
+                
+                if "parsedUrl" in episode_info:
+                    text += f"📺 播放链接: {episode_info['parsedUrl']}\n"
+                    text += f"🏷️ 集数标签: {episode_info.get('label', f'第{episode}集')}\n"
                     
-                    if len(data["episodes"]) > 10:
-                        text += f"\n... 还有 {len(data['episodes']) - 10} 集"
-                elif "url" in data:
-                    text = f"🎬 短剧ID {drama_id} 播放地址：\n\n"
-                    text += f"📺 播放链接: {data['url']}\n"
+                    parse_info = episode_info.get("parseInfo", {})
+                    if "type" in parse_info:
+                        text += f"📄 文件类型: {parse_info['type']}\n"
+                
+                total_episodes = result.get("totalEpisodes")
+                if total_episodes:
+                    text += f"📊 总集数: {total_episodes}\n"
+                
+                # 添加短剧描述（截取前100字符）
+                description = result.get("description", "")
+                if description:
+                    desc_short = description[:100] + "..." if len(description) > 100 else description
+                    text += f"\n📝 简介: {desc_short}"
                 else:
-                    text = f"😔 未找到短剧ID {drama_id} 的播放地址"
-        except:
-            text = result
+                    text += "\n😔 未找到播放地址"
+            else:
+                # 全集结果解析
+                video_name = result.get("videoName", "未知短剧")
+                results = result.get("results", [])
+                total_episodes = result.get("totalEpisodes", 0)
+                successful_count = result.get("successfulCount", 0)
+                failed_count = result.get("failedCount", 0)
+                
+                text = f"🎬 {video_name} - 全集播放地址\n\n"
+                text += f"📊 总集数: {total_episodes}\n"
+                text += f"✅ 成功解析: {successful_count} 集\n"
+                text += f"❌ 解析失败: {failed_count} 集\n\n"
+                
+                # 显示前10集的播放地址
+                success_episodes = [ep for ep in results if ep.get("status") == "success"]
+                display_episodes = success_episodes[:10]
+                
+                for ep_info in display_episodes:
+                    label = ep_info.get("label", f"第{ep_info.get('index', 0) + 1}集")
+                    text += f"📺 {label}: {ep_info.get('parsedUrl', 'N/A')}\n"
+                
+                if len(success_episodes) > 10:
+                    text += f"\n... 还有 {len(success_episodes) - 10} 集成功解析的地址\n"
+                
+                if failed_count > 0:
+                    text += f"\n⚠️ 注意: {failed_count} 集解析失败，可能暂时无法播放"
+                
+                # 添加短剧描述（截取前100字符）
+                description = result.get("description", "")
+                if description:
+                    desc_short = description[:100] + "..." if len(description) > 100 else description
+                    text += f"\n\n📝 简介: {desc_short}"
+                    
+        except Exception as e:
+            text = f"❌ 解析响应失败: {str(e)}\n原始数据: {json.dumps(result, ensure_ascii=False)[:200]}..."
         
         yield event.plain_result(text)
         

@@ -1,6 +1,6 @@
 # 短剧搜索插件
 
-AstrBot 短剧搜索插件，支持 LLM 函数调用功能
+AstrBot 短剧搜索插件，支持 LLM 函数调用功能。使用装饰器形式注册工具函数，提供完整的短剧搜索、推荐和播放功能。
 
 ## 功能特性
 
@@ -9,7 +9,7 @@ AstrBot 短剧搜索插件，支持 LLM 函数调用功能
 - 🌟 **智能推荐**: 获取推荐短剧
 - 🆕 **最新短剧**: 获取最新上线的短剧
 - 🎥 **剧集播放**: 获取短剧的播放地址
-- 🤖 **LLM 集成**: 支持大语言模型函数调用
+- 🤖 **LLM 集成**: 支持大语言模型函数调用，使用装饰器形式注册工具函数
 
 ## 使用方法
 
@@ -19,18 +19,54 @@ AstrBot 短剧搜索插件，支持 LLM 函数调用功能
 - `/搜索短剧 剧名` - 搜索指定名称的短剧
 - `/短剧推荐` 或 `/duanju_recommend` - 获取推荐短剧
 - `/最新短剧` 或 `/duanju_latest` - 获取最新短剧
-- `/分类短剧 分类ID [页码]` - 获取指定分类的短剧
+- `/分类短剧 分类ID [页码]` - 获取指定分类的热门短剧
+- `/获取剧集 短剧ID [集数]` - 获取短剧播放地址
 
 ### LLM 函数调用
 
-插件提供以下函数供 LLM 调用：
+插件使用 `@llm_tool` 装饰器注册以下函数供 LLM 调用：
 
-1. `get_categories()` - 获取短剧分类列表
+1. `get_drama_categories()` - 获取短剧分类列表
 2. `search_dramas(name)` - 根据名称搜索短剧
-3. `get_category_dramas(category_id, page)` - 获取分类短剧
-4. `get_recommendations(category_id, size)` - 获取推荐短剧
+3. `get_category_hot_dramas(category_id, page)` - 获取分类热门短剧
+4. `get_drama_recommendations(category_id, size)` - 获取推荐短剧
 5. `get_latest_dramas(page)` - 获取最新短剧
-6. `get_drama_episodes(drama_id, episode)` - 获取剧集播放地址
+6. `get_drama_episodes(drama_id, episode)` - 获取指定集数的播放地址（单集）
+
+### LLM 对话示例
+
+```
+用户: 帮我找一些好看的都市情感短剧
+AI: 我来为您搜索都市情感短剧。
+
+[调用 get_drama_categories() 获取分类]
+[调用 get_category_hot_dramas(category_id=1) 获取都市情感分类的热门短剧]
+
+为您推荐以下都市情感短剧：
+
+🎬 霸道总裁的小娇妻
+   📊 评分: 85
+   🆔 ID: 12345
+
+🎬 都市爱情故事
+   📊 评分: 82
+   🆔 ID: 12346
+   
+您想了解哪部短剧的详细信息或播放地址吗？
+
+用户: 我想看第一部的第5集
+AI: 好的，我来为您获取播放地址。
+
+[调用 get_drama_episodes(drama_id=12345, episode=5)]
+
+🎬 霸道总裁的小娇妻 - 第 5 集
+
+📺 播放链接: https://example.com/video/...
+🏷️ 集数标签: 第5集
+📄 文件类型: mp4
+
+如果您需要全集播放地址，请使用命令：/获取剧集 12345
+```
 
 ## 示例
 
@@ -56,9 +92,63 @@ AstrBot 短剧搜索插件，支持 LLM 函数调用功能
 ...
 ```
 
+### 获取剧集播放地址
+
+**单集地址：**
+```
+用户: /获取剧集 1334 1
+机器人: 🎬 季总您的马甲叒掉了 - 第 1 集
+
+📺 播放链接: https://dl-c-zb-cf.pds.quark.cn/...
+🏷️ 集数标签: 第1集
+📄 文件类型: mp4
+📊 总集数: 83
+
+📝 简介: 金融界新晋精英以实习秘书身份潜入季氏集团，暗中调查三年前导致家族破产的资本陷阱...
+```
+
+**全集地址：**
+```
+用户: /获取剧集 1334
+机器人: 🎬 季总您的马甲叒掉了 - 全集播放地址
+
+📊 总集数: 83
+✅ 成功解析: 48 集
+❌ 解析失败: 35 集
+
+📺 第1集: https://dl-c-zb-cf.pds.quark.cn/...
+📺 第2集: https://dl-c-zb-cf.pds.quark.cn/...
+...
+
+⚠️ 注意: 35 集解析失败，可能暂时无法播放
+
+📝 简介: 金融界新晋精英以实习秘书身份潜入季氏集团...
+```
+
+## 技术特性
+
+- ✅ **装饰器式工具注册**: 使用 `@llm_tool` 装饰器注册LLM工具函数
+- ✅ **异步HTTP请求**: 使用 `aiohttp` 进行高效的异步API调用
+- ✅ **资源管理**: 自动管理HTTP会话的创建和释放
+- ✅ **错误处理**: 完善的异常处理和错误信息返回
+- ✅ **用户友好界面**: 命令返回格式化的用户可读文本
+- ✅ **LLM数据格式**: 工具函数返回结构化JSON供AI处理
+- ✅ **智能播放地址解析**: 支持单集和全集地址获取，显示解析状态
+- ✅ **分离设计**: LLM工具仅支持单集查询，全集通过命令获取避免响应过长
+
 ## API 数据源
 
 本插件使用的 API 接口: `https://api.r2afosne.dpdns.org`
+
+### API 端点
+
+- `/vod/categories` - 获取分类列表
+- `/vod/search` - 搜索短剧
+- `/vod/list` - 获取分类短剧
+- `/vod/recommend` - 获取推荐短剧
+- `/vod/latest` - 获取最新短剧
+- `/vod/parse/single` - 获取单集播放地址
+- `/vod/parse/all` - 获取全集播放地址
 
 ## 依赖
 
@@ -70,7 +160,29 @@ AstrBot 短剧搜索插件，支持 LLM 函数调用功能
 2. 重启 AstrBot 或在 WebUI 中重载插件
 3. 插件将自动安装依赖并开始工作
 
+## 版本历史
+
+### v1.0.0
+- ✨ 初始版本发布
+- 🎯 支持短剧搜索、分类浏览、推荐功能
+- 🤖 集成LLM函数调用（装饰器形式）
+- 🎥 支持剧集播放地址获取
+- 📱 用户友好的命令界面
+
+## 贡献
+
+欢迎提交 Issue 和 Pull Request 来改进这个插件！
+
 ## 支持
 
 - [AstrBot 官方文档](https://docs.astrbot.app)
 - [插件开发指南](https://docs.astrbot.app/dev/star/plugin.html)
+- [GitHub 仓库](https://github.com/Sugayoiya/astrbot_plugin_duanju)
+
+## 作者
+
+**Sugayoiya** - 插件开发者
+
+## 许可证
+
+本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情
